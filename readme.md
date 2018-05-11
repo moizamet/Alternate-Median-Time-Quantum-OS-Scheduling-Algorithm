@@ -1,0 +1,1 @@
+We have Developed New OS CPU Scheduling algorithm . Alternate Medium Time Quantum that works on dynamic time slice used to execute a process within round robin fashion . We have Compared the results with another algorithms which proves that it is more efficient

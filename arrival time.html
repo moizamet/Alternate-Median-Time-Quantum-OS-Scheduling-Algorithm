@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>CPU Scheduling Algorithm Simulator</title>
+    <meta charset="UTF-8">
+
+    <script type="text/javascript">
+        var num_of_process;
+        var awt;
+        var att;
+        var algo;
+        var mturnaround = [0, 0, 0, 0];
+        var mwaiting = [0, 0, 0, 0];
+        var matt = [0, 0, 0, 0];
+        var mawt = [0, 0, 0, 0];
+        var time = [0, 0, 0, 0, 0];
+        var at = [0, 0, 0, 0, 0];
+		var flag=false;
+        var algo1 = "round-robin";
+        var algo2 = "Median Based";
+        var algo3 = "Median SJF";
+        var algo4 = "Alternative Median (Proposed)";
+
+        function comp() {
+            var tasks = new Array(num_of_process);
+            for (i = 0; i < num_of_process; i++) {
+                tasks[i] = parseInt(document.getElementById('txb' + i).value);
+            }
+            var proces = tasks.slice();
+            var turnaround = new Array(num_of_process);
+            var waiting = new Array(num_of_process);
+            for (i = 0; i < num_of_process; i++) {
+                turnaround[i] = "Not Completed";
+                waiting[i] = 0;
+            }
+            flag = true;
+            algo = "round-robin";
+            schedule();
+            algo = "proposed";
+            schedule();
+            algo = "proposed Sorted";
+            schedule();
+            algo = "proposed updated";
+            schedule();
+            generateTTT();
+            generateTWT();
+            generateATT();
+            generateAWT();
+            document.getElementById("pttt").innerHTML = '<table>									<tr><td>' + algo1 + '</td><td>' + mturnaround[0] + '</td></tr>						<tr><td>' + algo2 + '</td><td>' + mturnaround[1] + '</td></tr>						<tr><td>' + algo3 + '</td><td>' + mturnaround[2] + '</td></tr>						<tr><td>' + algo4 + '</td><td>' + mturnaround[3] + '</td></tr></table>';
+            document.getElementById("ptwt").innerHTML = '<table>									<tr><td>' + algo1 + '</td><td>' + mwaiting[0] + '</td></tr>							<tr><td>' + algo2 + '</td><td>' + mwaiting[1] + '</td></tr>							<tr><td>' + algo3 + '</td><td>' + mwaiting[2] + '</td></tr>							<tr><td>' + algo4 + '</td><td>' + mwaiting[3] + '</td></tr></table>';
+            document.getElementById("patt").innerHTML = '<table>									<tr><td>' + algo1 + '</td><td>' + matt[0] + '</td></tr>							<tr><td>' + algo2 + '</td><td>' + matt[1] + '</td></tr>							<tr><td>' + algo3 + '</td><td>' + matt[2] + '</td></tr>							<tr><td>' + algo4 + '</td><td>' + matt[3] + '</td></tr></table>';
+            document.getElementById("pawt").innerHTML = '<table>									<tr><td>' + algo1 + '</td><td>' + mawt[0] + '</td></tr>							<tr><td>' + algo2 + '</td><td>' + mawt[1] + '</td></tr>							<tr><td>' + algo3 + '</td><td>' + mawt[2] + '</td></tr>							<tr><td>' + algo4 + '</td><td>' + mawt[3] + '</td></tr></table>';
+
+        }
+
+
+
+        function display(time, att, length, awt, type) {
+            if (!flag) {
+                document.write("Total : " + time + "</br> Total Turnaround Time : " + att + " </br> Average Turnaround Time : " + att / length + " </br> Total Waiting Time : " + awt + " </br>  Average waiting Time : " + awt / length + "</br>");
+            } else {
+                mturnaround[type] = att;
+                mwaiting[type] = awt;
+                matt[type] = att / length;
+                mawt[type] = awt / length;
+            }
+        }
+
+        function to_write(line) {
+            if (!flag)
+                document.write(line);
+        }
+
+        function add(a, b) {
+            return a + b;
+        }
+
+        function createTextBox() {
+            num_of_process = parseInt(document.getElementById("noOfTasks").value);
+            if (num_of_process == null || num_of_process == 0) {
+                alert("Please Enter number of process");
+                return;
+            }
+            for (i = 0; i < num_of_process; i++) {
+
+
+                tb = document.createElement("input");
+                tb2 = document.createElement("input");
+                tb.type = "text";
+                tb2.type = "text";
+                tb.id = 'txb' + i;
+                tb.placeholder = "Burst Time : " + (i + 1);
+                tb2.placeholder = "Arrival Time : " + (i + 1);
+                tb2.id = 'time' + i;
+                document.getElementById("time").appendChild(tb2);
+                document.getElementById("burst").appendChild(tb);
+
+            }
+        }
+
+        function schedule() {
+            // var tasks=[15,16,25,10,35];
+            if (!flag)
+                algo = document.getElementById("algorithm").value;
+            if (algo == '' || algo == null) {
+                alert("Please select the algorithm to proceed further");
+            }
+            var tasks = new Array(num_of_process);
+            var at = new Array(num_of_process);
+            for (i = 0; i < num_of_process; i++) {
+                tasks[i] = parseFloat(document.getElementById('txb' + i).value);
+                if (algo == "Revamped Median") {
+                    try {
+                        at[i] = parseFloat(document.getElementById('time' + i).value);
+                    } catch {
+                        alert("in catch");
+                        at[i] = 0;
+                    }
+                }
+
+            }
+            var proces = tasks.slice();
+            var turnaround = new Array(num_of_process);
+            var waiting = new Array(num_of_process);
+            for (i = 0; i < num_of_process; i++) {
+                turnaround[i] = "Not Completed";
+                waiting[i] = 0;
+            }
+            var slice;
+            var max = tasks[0];
+            var max_index = 0;
+            var time = 0;
+
+            to_write(tasks + "</br>");
+
+            for (i = 1; i < num_of_process; i++) {
+                if (tasks[i] > max) {
+                    max = tasks[i];
+                    max_index = i;
+                }
+            }
+
+
+            // Round robin scheduling algorithm
+            if (algo == "round-robin") {
+                slice = parseFloat(prompt("Enter the time slice", 5));
+                while (tasks[max_index] != 0) {
+                    for (i = 0; i < num_of_process; i++) {
+                        if (tasks[i] >= slice) {
+                            tasks[i] -= slice;
+                            time += slice;
+                            if (time[i] || true) {
+                                if (tasks[i] == 0) {
+                                    turnaround[i] = time;
+                                }
+                            }
+
+                        } else if (tasks[i] > 0) {
+                            time += tasks[i];
+                            tasks[i] = 0;
+
+                            if (tasks[i] == 0) {
+                                turnaround[i] = time;
+                            }
+
+
+                        }
+                        to_write(tasks[i] + "</br>");
+
+                    }
+
+
+                    to_write("<hr>");
+                }
+                var att = turnaround.reduce(add, 0);
+                for (i = 0; i < num_of_process; i++) {
+                    waiting[i] = turnaround[i] - proces[i];
+                }
+                var awt = waiting.reduce(add, 0);
+                display(time, att, tasks.length, awt, 0);
+
+
+
+            }
+            // our proposed algorithm 
+            else if (algo == "proposed") {
+                var sortedTasks = tasks.slice();
+                sortedTasks.sort();
+                mid = tasks.length / 2;
+                if (tasks.length % 2 == 0) {
+                    median = (sortedTasks[mid] + sortedTasks[mid + 1]) / 2;
+                } else {
+                    mid = Math.floor(mid);
+                    median = sortedTasks[mid];
+                }
+
+
+                slice = median;
+                to_write("Remaining Task || Turnarond </br>");
+                for (j = 0; j < 2; j++) {
+                    for (i = 0; i < num_of_process; i++) {
+                        if (tasks[i] >= slice) {
+
+                            tasks[i] -= slice;
+                            time += slice;
+                            // to calculate turn around time
+                            if (time[i] || true) {
+                                if (tasks[i] == 0) {
+                                    turnaround[i] = time;
+                                }
+                            }
+
+                        } else if (tasks[i] > 0) {
+                            time += tasks[i];
+                            tasks[i] = 0;
+                            if (tasks[i] == 0) {
+                                turnaround[i] = time;
+                            }
+
+                        }
+
+                        to_write(tasks[i] + " || " + turnaround[i] + "</br>");
+
+                    }
+
+                    to_write("<hr>");
+                    slice = max - slice;
+
+                }
+                var att = turnaround.reduce(add, 0);
+
+                for (i = 0; i < num_of_process; i++) {
+                    waiting[i] = turnaround[i] - proces[i];
+
+
+                }
+                var awt = waiting.reduce(add, 0);
+
+                display(time, att, tasks.length, awt, 1);
+
+
+
+                return false;
+
+            }
+
+            // Proposed sorted algorithm 
+            else if (algo == "proposed Sorted") {
+                var sortedTasks = tasks.slice();
+                sortedTasks.sort();
+                mid = tasks.length / 2;
+                if (tasks.length % 2 == 0) {
+                    median = (sortedTasks[mid] + sortedTasks[mid + 1]) / 2;
+                } else {
+                    mid = Math.floor(mid);
+                    median = sortedTasks[mid];
+                }
+
+
+                slice = median;
+                tasks = sortedTasks;
+                for (j = 0; j < 2; j++) {
+                    for (i = 0; i < num_of_process; i++) {
+                        if (tasks[i] >= slice) {
+
+                            tasks[i] -= slice;
+                            time += slice;
+                            // to calculate turn around time
+                            if (time[i] || true) {
+                                if (tasks[i] == 0) {
+                                    turnaround[i] = time;
+                                }
+                            }
+
+                        } else if (tasks[i] > 0) {
+                            time += tasks[i];
+                            tasks[i] = 0;
+                            if (tasks[i] == 0) {
+                                turnaround[i] = time;
+                            }
+
+                        }
+
+                        to_write(tasks[i] + " || " + turnaround[i] + "</br>");
+
+                    }
+
+                    to_write("<hr>");
+                    slice = max - slice;
+
+                }
+                var att = turnaround.reduce(add, 0);
+
+                for (i = 0; i < num_of_process; i++) {
+                    waiting[i] = turnaround[i] - proces[i];
+
+
+                }
+                var awt = waiting.reduce(add, 0);
+
+
+                display(time, att, tasks.length, awt, 2);
+
+
+
+                return false;
+
+            }
+            // Final Algorithm that is giving best time
+            //////////////////////////Algorithm///////////////////////////////
+            else if (algo == "proposed updated") {
+                var sortedTasks = tasks.slice();
+                sortedTasks.sort();
+                mid = tasks.length / 2;
+                if (tasks.length % 2 == 0) {
+                    median = (sortedTasks[mid] + sortedTasks[mid + 1]) / 2;
+                } else {
+                    mid = Math.floor(mid);
+                    median = sortedTasks[mid];
+                }
+
+
+                slice = median;
+                for (j = 0; j < 2; j++) {
+                    for (i = 0; i < num_of_process; i++) {
+                        if (tasks[i] <= slice) {
+                            if (tasks[i] >= slice) {
+
+                                tasks[i] -= slice;
+                                time += slice;
+                                // to calculate turn around time
+                                if (tasks[i] == 0) {
+                                    turnaround[i] = time;
+                                }
+
+                            } else if (tasks[i] > 0) {
+                                time += tasks[i];
+                                tasks[i] = 0;
+                                if (tasks[i] == 0) {
+                                    if (!time[i]) {
+                                        turnaround[i] = time;
+
+                                    }
+                                }
+
+                            }
+
+                            to_write(tasks[i] + " || " + turnaround[i] + "</br>");
+                        }
+
+                    }
+
+                    to_write("<hr>");
+                    slice = max;
+
+                }
+                var att = turnaround.reduce(add, 0);
+
+                for (i = 0; i < num_of_process; i++) {
+                    waiting[i] = turnaround[i] - proces[i];
+
+
+                }
+                var awt = waiting.reduce(add, 0);
+
+                display(time, att, tasks.length, awt, 3);
+
+
+
+                return false;
+
+            }
+
+            //////////////////////////Algorithm///////////////////////////////
+
+            //////////////////////////////// NEW ALGORITHM ///////////////////////////////////
+            else if (algo == "Revamped Median") {
+
+                var sortedTasks = tasks.slice();
+                var bt = tasks.slice();
+                sortedTasks.sort();
+                mid = tasks.length / 2;
+                if (tasks.length % 2 == 0) {
+                    median = (sortedTasks[mid] + sortedTasks[mid + 1]) / 2;
+                } else {
+                    mid = Math.floor(mid);
+                    median = sortedTasks[mid];
+                }
+
+                //Sorting of task according to arrival time
+                for (i = 0; i < num_of_process; i++) {
+                    for (j = i + 1; j < num_of_process; j++) {
+                        if (at[i] > at[j]) {
+                            temp = at[i]; //sorting according to arrival time
+                            at[i] = at[j];
+                            at[j] = temp;
+                            temp = bt[i];
+                            bt[i] = bt[j];
+                            bt[j] = temp;
+                        }
+                    }
+                }
+                var nbt = bt.slice();
+                //Done till here
+                var j = 0;
+                var i = -1;
+
+                var flagg = 0;
+                var check = 0;
+
+                while (j < num_of_process) {
+                    flagg = flagg + 1;
+
+
+
+
+                    i = i + 1;
+                    if (i == num_of_process) {
+                        i = 0;
+                    };
+
+                    if (bt[i] == 0) {
+
+
+                        check = check + 1;
+                        if (check == num_of_process) {
+
+                            for (m = 0; m < num_of_process; m++) {
+
+                                if (bt[m] != 0) {
+
+                                    remain_largest = at[m];
+                                    break;
+                                }
+                            }
+                            time = time + (remain_largest - time);
+
+                        }
+                        continue;
+                    }
+                    if ((bt[i] != 0) && (at[i] <= time)) {
+                        check = 0;
+                        if (bt[i] >= slice) {
+
+                            bt[i] -= slice;
+                            time += slice;
+                            // to calculate turn around time
+                            if (bt[i] == 0) {
+                                turnaround[i] = time;
+                                turnaround[i] = turnaround[i] - at[i];
+                                j += 1;
+                            }
+
+                        } else if (bt[i] > 0) {
+
+                            time += bt[i];
+                            bt[i] = 0;
+                            if (bt[i] == 0) {
+                                j = j + 1;
+                                turnaround[i] = time;
+                                turnaround[i] = turnaround[i] - at[i];
+                            }
+
+                        }
+                    }
+
+                    to_write(bt[i] + " || " + turnaround[i] + "</br>");
+                    if (flagg == num_of_process) {
+
+                        slice = max;
+                    }
+
+
+                }
+                var att = turnaround.reduce(add, 0);
+
+                for (i = 0; i < num_of_process; i++) {
+                    waiting[i] = turnaround[i] - nbt[i];
+
+                }
+                var awt = waiting.reduce(add, 0);
+
+                document.write("Total : " + time + "</br> Total Turnaround Time : " + att + " </br> Average Turnaround Time : " + att / num_of_process + " </br> Total Waiting Time : " + awt + " </br>  Average waiting Time : " + awt / num_of_process + "</br>");
+
+                return false;
+            } else {
+                alert("Please select algorithm");
+            }
+            return;
+        }
+
+        function generateTTT() {
+
+            var chart = new CanvasJS.Chart("chartContainerttt", {
+                animationEnabled: true,
+                theme: "light2", // "light1", "light2", "dark1", "dark2"
+                title: {
+                    text: "Total Turn Around Time"
+                },
+                axisY: {
+                    title: "Processor Clock Cycle"
+                },
+                data: [{
+                    type: "column",
+                    showInLegend: true,
+                    legendMarkerColor: "grey",
+                    legendText: "CC = Clock Cycle",
+                    dataPoints: [{
+                            y: mturnaround[0],
+                            label: "Round Robin"
+                        },
+                        {
+                            y: mturnaround[1],
+                            label: "Median Based"
+                        },
+                        {
+                            y: mturnaround[2],
+                            label: "Median SJF"
+                        },
+                        {
+                            y: mturnaround[3],
+                            label: "Alternative Median (Proposed)"
+                        },
+
+                    ]
+                }]
+            });
+            chart.render();
+
+        }
+
+        function generateTWT() {
+
+            var chart = new CanvasJS.Chart("chartContainertwt", {
+                animationEnabled: true,
+                theme: "light2", // "light1", "light2", "dark1", "dark2"
+                title: {
+                    text: "Total Waiting Time"
+                },
+                axisY: {
+                    title: "Processor Clock Cycle"
+                },
+                data: [{
+                    type: "column",
+                    showInLegend: true,
+                    legendMarkerColor: "grey",
+                    legendText: "CC = Clock Cycle",
+                    dataPoints: [{
+                            y: mwaiting[0],
+                            label: "Round Robin"
+                        },
+                        {
+                            y: mwaiting[1],
+                            label: "Median Based"
+                        },
+                        {
+                            y: mwaiting[2],
+                            label: "Median SJF"
+                        },
+                        {
+                            y: mwaiting[3],
+                            label: "Alternative Median (Proposed)"
+                        },
+
+                    ]
+                }]
+            });
+            chart.render();
+
+        }
+
+        function generateATT() {
+
+            var chart = new CanvasJS.Chart("chartContaineratt", {
+                animationEnabled: true,
+                theme: "light2", // "light1", "light2", "dark1", "dark2"
+                title: {
+                    text: "Average Turn Around Time"
+                },
+                axisY: {
+                    title: "Processor Clock Cycle"
+                },
+                data: [{
+                    type: "column",
+                    showInLegend: true,
+                    legendMarkerColor: "grey",
+                    legendText: "CC = Clock Cycle",
+                    dataPoints: [{
+                            y: matt[0],
+                            label: "Round Robin"
+                        },
+                        {
+                            y: matt[1],
+                            label: "Median Based"
+                        },
+                        {
+                            y: matt[2],
+                            label: "Median SJF"
+                        },
+                        {
+                            y: matt[3],
+                            label: "Alternative Median (Proposed)"
+                        },
+
+                    ]
+                }]
+            });
+            chart.render();
+
+        }
+
+        function generateAWT() {
+
+            var chart = new CanvasJS.Chart("chartContainerawt", {
+                animationEnabled: true,
+                theme: "light2", // "light1", "light2", "dark1", "dark2"
+                title: {
+                    text: "Average Waiting Time"
+                },
+                axisY: {
+                    title: "Processor Clock Cycle"
+                },
+                data: [{
+                    type: "column",
+                    showInLegend: true,
+                    legendMarkerColor: "grey",
+                    legendText: "CC = Clock Cycle",
+                    dataPoints: [{
+                            y: mawt[0],
+                            label: "Round Robin"
+                        },
+                        {
+                            y: mawt[1],
+                            label: "Median Based"
+                        },
+                        {
+                            y: mawt[2],
+                            label: "Median SJF"
+                        },
+                        {
+                            y: mawt[3],
+                            label: "Alternative Median (Proposed)"
+                        },
+
+                    ]
+                }]
+            });
+            chart.render();
+
+        }
+    </script>
+</head>
+
+<body>
+	<div style="background:url('Background.jpg');color:white;">
+    <form name="main_form">
+        <fieldset>
+            <legend>
+                CPU Scheduling Algorithm
+            </legend>
+            <h1 align="center" style="color: #ccc;">Operating System J Component</h1>
+            <table>
+                <tr>
+                    <td>Enter No. of Tasks to perform</td>
+                    <td>
+                        <input type="number" id="noOfTasks">
+                    </td>
+                </tr>
+                <tr>
+                    <td>Select Algorithm for Analysis</td>
+                    <td>
+                        <select id="algorithm">
+			<option value="round-robin">Round Robin</option>
+			<option value="proposed">Alternative Round Robin</option>
+			<option value="proposed Sorted">Alternative Round Robin SJF</option>
+			<option value="proposed updated"> Updated </option>
+			<option value="Revamped Median">Revamped Median</option>
+			</select>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan=2>
+                        <center><input type="button" value="Prepare" name="btn2" onclick="createTextBox()"> </center>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <div id="time" style="width: 210px;">
+
+                        </div>
+                    </td>
+                    <td>
+                        <div id="burst" style="width: 210px;">
+
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <center>
+                            <input type="submit" value="Analys" name="btn1" onclick="schedule()"><br>
+                            <input style="background-color: red;width: 150px ;height: 50px;" type="button" value="Compare" name="btn3" onclick="comp()">
+                        </center>
+                    </td>
+                </tr>
+            </table>
+
+
+        </fieldset>
+
+	</form>
+</div>
+<div style="background:url('Background2.jpg');color:white;">
+    <div>
+        &bull;
+        <h1>Total Turn Around Time</h1>
+        <p id="pttt"></p>
+    </div>
+    <div id="chartContainerttt" style="height: 370px; max-width: 920px; margin: 0px auto;"></div>
+    <div>
+        &bull;
+        <h1>Total Waiting Time</h1>
+        <p id="ptwt"></p>
+    </div>
+    <div id="chartContainertwt" style="height: 370px; max-width: 920px; margin: 0px auto;"></div>
+    <div>
+        &bull;
+        <h1>Average Turn Around Time</h1>
+        <p id="patt"></p>
+    </div>
+    <div id="chartContaineratt" style="height: 370px; max-width: 920px; margin: 0px auto;"></div>
+    <div>
+        &bull;
+        <h1>Average Waiting Time</h1>
+        <p id="pawt"></p>
+    </div>
+    <div id="chartContainerawt" style="height: 370px; max-width: 920px; margin: 0px auto;"></div>
+</div>
+    <script src="chartapi.js"></script>
+</body>
+
+</html>
